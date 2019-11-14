@@ -37,7 +37,7 @@ def get_data(pos1,pos2):
     return db
 
 #构建并训练网络
-def train(db,save=False,save_road='./model/modelt.h5'):
+def train(db,save=False,save_road='./model/model.h5'):
     network = Sequential([
         layers.Dense(260,activation=tf.nn.relu),
         layers.Dense(130,activation=tf.nn.relu),
@@ -54,7 +54,7 @@ def train(db,save=False,save_road='./model/modelt.h5'):
                     metrics = ['accuracy'])
 
     #运行神经网络
-    network.fit(db,epochs=1,validation_freq=1)
+    network.fit(db,epochs=10,validation_freq=1)
 
     #保存网络
     if save:
@@ -69,11 +69,11 @@ def test_data(network):
     pos1=G_testx
     pos2=G_testy
     data=pd.read_csv(pos1)
-    x_test=data.iloc[100:50000,]
+    x_test=data.iloc[:50000,]
     x_test=np.array(x_test)
 
     data=pd.read_csv(pos2)
-    y_test=data.iloc[101:50001,:]
+    y_test=data.iloc[1:50001,:]
     y_test=np.array(y_test)
 
     print(x_test.shape,y_test.shape)
@@ -96,8 +96,8 @@ def predict(network,input):
     # print(result)
     # print('2:')
     # print(result[0])
-    print(result[0][0])
-    print(result[0][1])
+    #print(result[0][0])
+    #print(result[0][1])
     return result
 
 #获得相对精确率(在相差relative的情况下的精度)
@@ -114,16 +114,15 @@ def my_eva(network,pos1,pos2):
     x_test=data.iloc[:,:]
     x_test=np.array(x_test)
 
-
     data=pd.read_csv(pos2)
     y_test=data.iloc[1:,]
     y_test=np.array(y_test)
 
     right=0
-    j=0
-    k=1
+    counter=0
+    hundred_num=1
     for i in range(len(x_test)):
-        j+=1
+        counter+=1
         result=network.predict(x_test[i].reshape(1,260))
         if GetRelative(result[0][0],result[0][1],y_test[i]):
             #print(result)
@@ -131,37 +130,39 @@ def my_eva(network,pos1,pos2):
         else:
             #print(result)
             pass
-        if j>100:
-            print(str(k)+":"+str(right/i))
-            k+=1
-            j=0
-
+        if counter>100:
+            print(str(hundred_num)+":"+str(right/i))
+            hundred_num+=1
+            counter=0
 
     print(right/len(x_test))
 
-def name2id(namelist):
-    with open("heroes.txt") as hero:
-        pass
+
 
 
 if __name__ == "__main__":
 
 
-    load=input("是否加载数据 Y/N \n")
+    load=input("是否加载模型 Y/N \n")
     if load=='Y' or load=='y':
         #加载训练好的模型
-        network_result = tf.keras.models.load_model('./model/model1.h5')
-        test_data(network_result)
-        input()
+        network_result = tf.keras.models.load_model('./model/model10.h5')
+        #test_data(network_result)
+        #input()
         #用自定义评估函数进行评估
-        my_eva(network_result,G_testx,G_testy)
+        #my_eva(network_result,G_testx,G_testy)
     else:
         #重新训练模型
         xtrain_pos=G_trainx
         ytrain_pos=G_trainy
         db=get_data(xtrain_pos,ytrain_pos)
         network_result=train(db,True)
-        my_eva(network_result,G_testx,G_testy)
+        
+
+    # #测试集测试
+    # eva=input("是否用测试集进行数据验证 Y/N \n")
+    # if eva=='Y' or eva=='y':
+    #     test_data(network_result)
 
     #手动输入数据进行预测
     while True:
@@ -170,14 +171,15 @@ if __name__ == "__main__":
             preinput=input("请输入测试数据")
             prelist=preinput.split(',')
             prelist=[ int(x) for x in prelist ]
-            preresult=predict(network_result,prelist)
-            xtest_pos=G_testx
-            ytest_pos=G_testy
+            result=predict(network_result,prelist)
+            if result[0][0]>result[0][1]:
+                print("夜魇胜利")
+            else:
+                print("天辉胜利")
         else:
             break
 
-    #测试集测试
-    eva=input("是否用测试集进行数据验证 Y/N \n")
-    if eva=='Y' or eva=='y':
-        test_data(network_result)
+    my_eva(network_result,G_testx,G_testy)
+
+
 
