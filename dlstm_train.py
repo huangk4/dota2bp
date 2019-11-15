@@ -10,15 +10,15 @@ from tensorflow.keras.utils import to_categorical
 from tensorflow import keras
 
 batch_size=600
-G_train_origin="E:/code/AI/dota2/data/matches_list_ranking2.csv"
+G_train_origin="E:/code/AI/dota2/data/train.csv"
 G_trainx="E:/code/AI/dota2/data/train_data.csv"
 G_trainy="E:/code/AI\dota2/data/train_win.csv"
-G_test_origin="E:/code/AI/dota2/data/matches_list_ranking.csv"
+G_test_origin="E:/code/AI/dota2/data/test.csv"
 G_test_origin_fan="E:/code/AI/dota2/data/test_全_反.csv"
 G_testx="E:/code/AI/dota2/data/test_data.csv"
 G_testy="E:/code\AI/dota2/data/test_win.csv"
 G_testy_fan="E:/code\AI/dota2/data/test_win_反.csv"
-
+G_check_origin="E:/code/AI/dota2/data/check.csv"
 
 
 #parameters for LSTM
@@ -27,30 +27,30 @@ nb_time_steps = 10  #时间序列长度
 nb_input_vector = 130 #输入序列
 
 
-def lstm_model(save=False,save_road='./model/drop_2_doublelstm_model.h5'):
+def lstm_model(save=False,save_road='./model/sigmoid_doublelstm_model.h5'):
     model = Sequential([
         layers.Bidirectional(layers.LSTM(units=nb_lstm_outputs,dropout=0.25, recurrent_dropout=0.1), input_shape=(nb_time_steps, nb_input_vector)),
-        # layers.Dropout(0.2),
-        # layers.Dense(100,activation='relu'),
-        # layers.Dropout(0.2),
-        layers.Dense(2, activation='softmax')
+        layers.Dropout(0.2),
+        layers.Dense(10,activation='relu'),
+        layers.Dropout(0.2),
+        layers.Dense(1, activation='sigmoid')
         ])
     model.compile(optimizer=keras.optimizers.Adam(),batch_size=100,
-                 loss=tf.losses.CategoricalCrossentropy(from_logits=True),
+                 loss='mse',
                  metrics=['accuracy'])
 
     model.summary()
 
     x,y=get_data_onehot(G_train_origin)
     history=model.fit(x,y,
-          epochs=1)
+          epochs=3)
     #保存网络
     if save:
         model.save(save_road)
         print("已保存在"+save_road)
     return history,model
 
-
+#获取数据并进行one-hot编码
 def get_data_onehot(file_pos):
     data=pd.read_csv(file_pos)
     #提取天辉和夜魇阵容
@@ -61,26 +61,50 @@ def get_data_onehot(file_pos):
     # dire_train=np.array(dire_train)
     # dire_train=to_categorical(dire_train)
 
-    x_train=data.iloc[1:,2:12]
-    x_train=np.array(x_train)
-    x_train=to_categorical(x_train,130)
+    x_data=data.iloc[1:,2:12]
+    x_data=np.array(x_data)
+    x_data=to_categorical(x_data,130)
 
-    y_train=data.iloc[1:,12:13]
-    y_train=np.array(y_train)
-    y_train=to_categorical(y_train,2)
+    y_data=data.iloc[1:,12:13]
+    y_data=np.array(y_data)
+    #y_data=to_categorical(y_data,2)
 
-    print(x_train.shape,y_train.shape)
+    print(x_data.shape,y_data.shape)
 
-    return x_train,y_train
+    return x_data,y_data
 
+#获得相对正确率
+def relative(model,gap):
+    x_test,y_test=get_data_onehot(G_test_origin)
+    true_count=0
+    data_count=0
 
+    record=0
+    for i in range(len(x_test)):
+        predata=model.predict(x_test[i].reshape(1,10,130))
+        if predata-gap>0.5:
+            if y_test[i]==1:
+                true_count+=1
+            data_count+=1
+        elif predata+gap<0.5:
+            if y_test[i]==0:
+                true_count+=1
+            data_count+=1
+        record+=1
+        if record==100:
+            record=0
+            if data_count!=0:
+                print(true_count/data_count)
+                print(data_count)
+
+    return true_count/data_count
 
 
 if __name__ == "__main__":
     load=input("是否加载模型 Y/N \n")
     if load=='Y' or load=='y':
         #加载训练好的模型
-        network_result = tf.keras.models.load_model('./model/doublelstm_model.h5')
+        network_result = tf.keras.models.load_model('./model/sigmoid_doublelstm_model.h5')
     else:
         history,network_result = lstm_model(True)
 
@@ -100,5 +124,16 @@ if __name__ == "__main__":
         else:
             break
 
-    testx,testy=get_data_onehot(G_test_origin)
+    #进行相对准确率预测
+    get_relative=input("是否获取相对准确率 Y/N \n")
+    if get_relative=='Y' or pre=='y':
+        print(relative(network_result,0.3))
+
+
+    #进行平均准确率预测
+    test_check=input("获取测试集或者验证集精度 t/y \n")
+    if test_check=='t':
+        testx,testy=get_data_onehot(G_test_origin)
+    else:
+        testx,testy=get_data_onehot(G_check_origin)
     network_result.evaluate(testx,testy)

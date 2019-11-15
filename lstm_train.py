@@ -27,11 +27,11 @@ nb_time_steps = 10  #时间序列长度
 nb_input_vector = 130 #输入序列
 
 
-def lstm_model(save=False,save_road='./model/purelstm_model.h5'):
+def lstm_model(save=False,save_road='./model/1lstm_model.h5'):
     model = Sequential([
-        layers.Bidirectional.LSTM(units=nb_lstm_outputs, input_shape=(nb_time_steps, nb_input_vector)),
+        layers.LSTM(units=nb_lstm_outputs, input_shape=(nb_time_steps, nb_input_vector)),
         # layers.Dropout(0.2),
-        # layers.Dense(100,activation='relu'),
+        # layers.Dense(10,activation='relu'),
         # layers.Dropout(0.2),
         layers.Dense(2, activation='softmax')
         ])
@@ -80,7 +80,7 @@ if __name__ == "__main__":
     load=input("是否加载模型 Y/N \n")
     if load=='Y' or load=='y':
         #加载训练好的模型
-        network_result = tf.keras.models.load_model('./model/purelstm_model.h5')
+        network_result = tf.keras.models.load_model('./model/1lstm_model.h5')
     else:
         history,network_result = lstm_model(True)
 
