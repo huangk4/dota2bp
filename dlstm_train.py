@@ -74,30 +74,71 @@ def get_data_onehot(file_pos):
     return x_data,y_data
 
 #获得相对正确率
-def relative(model,gap):
+def relative(model,show):
     x_test,y_test=get_data_onehot(G_test_origin)
-    true_count=0
-    data_count=0
 
+
+    six_gap=0.1
+    seven_gap=0.2
+    eight_gap=0.3
+
+    six_count=0
+    seven_count=0
+    eight_count=0
+
+    sidata_count=0
+    sedata_count=0
+    eidata_count=0
     record=0
+
     for i in range(len(x_test)):
-        predata=model.predict(x_test[i].reshape(1,10,130))
-        if predata-gap>0.5:
+        rex=x_test[i].reshape(1,10,130)
+        predata=model.predict(rex)
+
+        if predata-six_gap>0.5:
             if y_test[i]==1:
-                true_count+=1
-            data_count+=1
-        elif predata+gap<0.5:
+                six_count+=1
+            sidata_count+=1
+        elif predata+six_gap<0.5:
             if y_test[i]==0:
-                true_count+=1
-            data_count+=1
+                six_count+=1
+            sidata_count+=1
+
+        if predata-seven_gap>0.5:
+            if y_test[i]==1:
+                seven_count+=1
+            sedata_count+=1
+        elif predata+seven_gap<0.5:
+            if y_test[i]==0:
+                sedata_count+=1
+            seven_count+=1
+
+        if predata-eight_gap>0.5:
+            if y_test[i]==1:
+                eight_count+=1
+            eidata_count+=1
+        elif predata+eight_gap<0.5:
+            if y_test[i]==0:
+                eight_count+=1
+            eidata_count+=1
+
         record+=1
         if record==100:
             record=0
-            if data_count!=0:
-                print(true_count/data_count)
-                print(data_count)
+            print(i)
+            if show==True:
+                if sidata_count!=0:
+                    print("预测胜率在0.6以上准确率:"),
+                    print(six_count/sidata_count)
+                if sedata_count!=0:
+                    print("预测胜率在0.7以上准确率:"),
+                    print(seven_count/sedata_count)
+                if eidata_count!=0:
+                    print("预测胜率在0.8以上准确率:"),
+                    print(eight_count/eidata_count)
 
-    return true_count/data_count
+    return six_count/sidata_count,seven_count/sedata_count,eight_count/eidata_count
+
 
 
 if __name__ == "__main__":
@@ -126,8 +167,8 @@ if __name__ == "__main__":
 
     #进行相对准确率预测
     get_relative=input("是否获取相对准确率 Y/N \n")
-    if get_relative=='Y' or pre=='y':
-        print(relative(network_result,0.3))
+    if get_relative=='Y' or get_relative=='y':
+        six,seven,eight=relative(network_result,True)
 
 
     #进行平均准确率预测
