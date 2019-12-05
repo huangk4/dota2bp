@@ -12,12 +12,12 @@ from tensorflow import keras
 batch_size=600
 G_train_origin="E:/code/AI/dota2/data/train.csv"
 G_trainx="E:/code/AI/dota2/data/train_data.csv"
-G_trainy="E:/code/AI\dota2/data/train_win.csv"
+G_trainy="E:/code/AI/dota2/data/train_win.csv"
 G_test_origin="E:/code/AI/dota2/data/test.csv"
 G_test_origin_fan="E:/code/AI/dota2/data/test_全_反.csv"
 G_testx="E:/code/AI/dota2/data/test_data.csv"
-G_testy="E:/code\AI/dota2/data/test_win.csv"
-G_testy_fan="E:/code\AI/dota2/data/test_win_反.csv"
+G_testy="E:/code/AI/dota2/data/test_win.csv"
+G_testy_fan="E:/code/AI/dota2/data/test_win_反.csv"
 G_check_origin="E:/code/AI/dota2/data/check.csv"
 
 
@@ -26,8 +26,8 @@ nb_lstm_outputs = 128  #神经元个数
 nb_time_steps = 10  #时间序列长度
 nb_input_vector = 130 #输入序列
 
-
-def lstm_model(save=False,save_road='./model/sigmoid_doublelstm_model.h5'):
+#训练模型
+def lstm_model(save=False,save_road='./model/20_balance_sigmoid_doublelstm_model.h5'):
     model = Sequential([
         layers.Bidirectional(layers.LSTM(units=nb_lstm_outputs,dropout=0.25, recurrent_dropout=0.1), input_shape=(nb_time_steps, nb_input_vector)),
         layers.Dropout(0.2),
@@ -43,7 +43,7 @@ def lstm_model(save=False,save_road='./model/sigmoid_doublelstm_model.h5'):
 
     x,y=get_data_onehot(G_train_origin)
     history=model.fit(x,y,
-          epochs=3)
+          epochs=20)
     #保存网络
     if save:
         model.save(save_road)
@@ -53,29 +53,26 @@ def lstm_model(save=False,save_road='./model/sigmoid_doublelstm_model.h5'):
 #获取数据并进行one-hot编码
 def get_data_onehot(file_pos):
     data=pd.read_csv(file_pos)
-    #提取天辉和夜魇阵容
-    # radiant_train=data.iloc[1:,2:7]
-    # radiant_train=np.array(radiant_train)
-    # radiant_train=to_categorical(radiant_train)
-    # dire_train=data.iloc[1:,7:12]
-    # dire_train=np.array(dire_train)
-    # dire_train=to_categorical(dire_train)
 
-    x_data=data.iloc[1:,2:12]
+    x_data=data.iloc[:,2:12]
     x_data=np.array(x_data)
+    #print(x_data[325])
     x_data=to_categorical(x_data,130)
 
-    y_data=data.iloc[1:,12:13]
+    y_data=data.iloc[:,12:13]
     y_data=np.array(y_data)
-    #y_data=to_categorical(y_data,2)
 
     print(x_data.shape,y_data.shape)
 
     return x_data,y_data
 
+#减去偏差值
+def cut_bias(model,data,bias):
+    return model.predict(data)-bias
+
 #获得相对正确率
 def relative(model,show):
-    x_test,y_test=get_data_onehot(G_test_origin)
+    x_test,y_test=get_data_onehot(G_check_origin)
 
 
     six_gap=0.1
@@ -110,8 +107,9 @@ def relative(model,show):
             sedata_count+=1
         elif predata+seven_gap<0.5:
             if y_test[i]==0:
-                sedata_count+=1
-            seven_count+=1
+                seven_count+=1
+            sedata_count+=1
+
 
         if predata-eight_gap>0.5:
             if y_test[i]==1:
@@ -145,7 +143,7 @@ if __name__ == "__main__":
     load=input("是否加载模型 Y/N \n")
     if load=='Y' or load=='y':
         #加载训练好的模型
-        network_result = tf.keras.models.load_model('./model/sigmoid_doublelstm_model.h5')
+        network_result = tf.keras.models.load_model('./model/20_balance_sigmoid_doublelstm_model.h5')
     else:
         history,network_result = lstm_model(True)
 
@@ -165,11 +163,6 @@ if __name__ == "__main__":
         else:
             break
 
-    #进行相对准确率预测
-    get_relative=input("是否获取相对准确率 Y/N \n")
-    if get_relative=='Y' or get_relative=='y':
-        six,seven,eight=relative(network_result,True)
-
 
     #进行平均准确率预测
     test_check=input("获取测试集或者验证集精度 t/y \n")
@@ -178,3 +171,12 @@ if __name__ == "__main__":
     else:
         testx,testy=get_data_onehot(G_check_origin)
     network_result.evaluate(testx,testy)
+
+    
+    #进行相对准确率预测
+    get_relative=input("是否获取相对准确率 Y/N \n")
+    if get_relative=='Y' or get_relative=='y':
+        six,seven,eight=relative(network_result,True)
+
+
+

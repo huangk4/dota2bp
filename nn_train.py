@@ -37,12 +37,17 @@ def get_data(pos1,pos2):
     return db
 
 #构建并训练网络
-def train(db,save=False,save_road='./model/model.h5'):
+def train(db,save=False,save_road='./model/10_drop_nn_model.h5'):
     network = Sequential([
         layers.Dense(260,activation=tf.nn.relu),
+        layers.Dropout(0.2),
         layers.Dense(130,activation=tf.nn.relu),
+        layers.Dropout(0.2),
         layers.Dense(65,activation=tf.nn.relu),
+        layers.Dropout(0.2),
         layers.Dense(32,activation=tf.nn.relu),
+        layers.Dropout(0.2),
+        layers.Dense(10,activation=tf.nn.relu),
         layers.Dense(2,activation='softmax')
     ])
     network.build(input_shape=[None,1*260])
@@ -146,7 +151,7 @@ if __name__ == "__main__":
     load=input("是否加载模型 Y/N \n")
     if load=='Y' or load=='y':
         #加载训练好的模型
-        network_result = tf.keras.models.load_model('./model/model10.h5')
+        network_result = tf.keras.models.load_model('./model/10_drop_nn_model.h5')
         #test_data(network_result)
         #input()
         #用自定义评估函数进行评估
@@ -172,10 +177,11 @@ if __name__ == "__main__":
             prelist=preinput.split(',')
             prelist=[ int(x) for x in prelist ]
             result=predict(network_result,prelist)
-            if result[0][0]>result[0][1]:
-                print("夜魇胜利")
-            else:
-                print("天辉胜利")
+            print(result[0][0])
+            # if result[0][0]>result[0][1]:
+            #     print("夜魇胜利")
+            # else:
+            #     print("天辉胜利")
         else:
             break
 
